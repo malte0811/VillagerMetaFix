@@ -1,0 +1,16 @@
+[
+{
+  "modid": "VillagerMetaFix",
+  "name": "VillagerMetaFix",
+  "description": "A small core mod that makes villagers check that they are buying items with the correct metadata",
+  "version": "${version}",
+  "mcversion": "1.7.10",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["malte0811"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]

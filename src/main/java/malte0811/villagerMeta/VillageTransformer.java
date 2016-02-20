@@ -1,0 +1,179 @@
+package malte0811.villagerMeta;
+
+import java.util.Iterator;
+
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.VarInsnNode;
+
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Opcodes;
+
+import net.minecraft.launchwrapper.IClassTransformer;
+
+public class VillageTransformer implements IClassTransformer, Opcodes {
+	private static boolean patchedList = false, patchedRecipe = false;
+	@Override
+	public byte[] transform(String name, String transformedName, byte[] basicClass) {
+		if (!patchedRecipe&&name.equals("net.minecraft.village.MerchantRecipe")) {
+			patchedRecipe = true;
+			return patchRecipe(true, basicClass);
+		} else if (!patchedRecipe&&name.equals("agn")) {
+			patchedRecipe = true;
+			return patchRecipe(false, basicClass);
+		} else if (!patchedList&&name.equals("net.minecraft.village.MerchantRecipeList")) {
+			patchedList = true;
+			return patchList(true, basicClass);
+		} else if (!patchedList&&name.equals("ago")) {
+			patchedList = true;
+			return patchList(false, basicClass);
+		}
+		
+		return basicClass;
+	}
+
+	private byte[] patchRecipe(boolean dev, byte[] base) {
+		String nbt = dev?"net/minecraft/nbt/NBTTagCompound":"dh";
+		String name = dev?"net/minecraft/village/MerchantRecipe":"agn";
+		String read = dev?"readFromTags":"a";
+		String write = dev?"writeToTags":"i";
+		String getBoolean = dev?"getBoolean":"n";
+		String setBoolean = dev?"setBoolean":"a";
+		String hasKey = dev?"hasKey":"c";
+		ClassNode classNode = new ClassNode();
+		ClassReader classReader = new ClassReader(base);
+		classReader.accept(classNode, 0);
+
+		//add boolean fields
+		ClassWriter cw;
+		cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+		classNode.accept(cw);
+		FieldVisitor fv = cw.visitField(ACC_PUBLIC, "checkMeta", "Z", null, null);
+		fv.visitEnd();
+		fv = cw.visitField(ACC_PUBLIC, "checkNbt", "Z", null, null);
+		fv.visitEnd();
+		base = cw.toByteArray();
+		classNode = new ClassNode();
+		classReader = new ClassReader(base);
+		classReader.accept(classNode, 0);
+
+		Iterator<MethodNode> methods = classNode.methods.iterator();
+		while(methods.hasNext())
+		{
+			MethodNode m = methods.next();
+			if (m.name.equals("<init>"))
+			{
+				InsnList list = new InsnList();
+				list.add(new VarInsnNode(ALOAD, 0));
+				list.add(new InsnNode(Config.useMetaOnDefault()?ICONST_1:ICONST_0));
+				list.add(new FieldInsnNode(PUTFIELD, name, "checkMeta", "Z"));
+				list.add(new VarInsnNode(ALOAD, 0));
+				list.add(new InsnNode(Config.useNbtOnDefault()?ICONST_1:ICONST_0));
+				list.add(new FieldInsnNode(PUTFIELD, name, "checkNbt", "Z"));
+				m.instructions.insert(list);
+			} else if (m.name.equals(read)&&m.desc.equals("(L"+nbt+";)V")) {
+				InsnList list = new InsnList();
+				list.add(new VarInsnNode(ALOAD, 1));
+				list.add(new LdcInsnNode("checkMeta"));
+				list.add(new MethodInsnNode(INVOKEVIRTUAL, nbt, hasKey, "(Ljava/lang/String;)Z", false));
+				LabelNode label = new LabelNode();
+				list.add(new JumpInsnNode(IFEQ, label));
+				list.add(new VarInsnNode(ALOAD, 0));
+				list.add(new VarInsnNode(ALOAD, 1));
+				list.add(new LdcInsnNode("checkMeta"));
+				list.add(new MethodInsnNode(INVOKEVIRTUAL, nbt, getBoolean, "(Ljava/lang/String;)Z", false));
+				list.add(new FieldInsnNode(PUTFIELD, name, "checkMeta", "Z"));
+				list.add(new VarInsnNode(ALOAD, 0));
+				list.add(new VarInsnNode(ALOAD, 1));
+				list.add(new LdcInsnNode("checkNbt"));
+				list.add(new MethodInsnNode(INVOKEVIRTUAL, nbt, getBoolean, "(Ljava/lang/String;)Z", false));
+				list.add(new FieldInsnNode(PUTFIELD, name, "checkNbt", "Z"));
+				list.add(label);
+				m.instructions.add(list);
+			} else if (m.name.equals(write)&&m.desc.equals("()L"+nbt+";")) {
+				InsnList list = new InsnList();
+				list.add(new VarInsnNode(ALOAD, 1));
+				list.add(new LdcInsnNode("checkNbt"));
+				list.add(new VarInsnNode(ALOAD, 0));
+				list.add(new FieldInsnNode(GETFIELD, name, "checkNbt", "Z"));
+				list.add(new MethodInsnNode(INVOKEVIRTUAL, nbt, setBoolean, "(Ljava/lang/String;Z)V", false));
+
+				list.add(new VarInsnNode(ALOAD, 1));
+				list.add(new LdcInsnNode("checkMeta"));
+				list.add(new VarInsnNode(ALOAD, 0));
+				list.add(new FieldInsnNode(GETFIELD, name, "checkMeta", "Z"));
+				list.add(new MethodInsnNode(INVOKEVIRTUAL, nbt, setBoolean, "(Ljava/lang/String;Z)V", false));
+
+				InsnList method = m.instructions;
+				AbstractInsnNode ins = method.getFirst();
+				while (!(ins instanceof VarInsnNode)||ins.getOpcode()!=ASTORE) {
+					ins = ins.getNext();
+				}
+				method.insert(ins, list);
+			}
+		}
+
+		cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+		classNode.accept(cw);
+		return cw.toByteArray();
+	}
+
+	private byte[] patchList(boolean dev, byte[] base) {
+		String stack = dev?"net/minecraft/item/ItemStack":"add";
+		String list = dev?"net/minecraft/village/MerchantRecipeList":"ago";
+		String recipe = dev?"net/minecraft/village/MerchantRecipe":"agn";
+		String canUse = dev?"canRecipeBeUsed":"a";
+		String get = "get";
+		ClassNode classNode = new ClassNode();
+		ClassReader classReader = new ClassReader(base);
+		classReader.accept(classNode, 0);
+
+		ClassWriter cw;
+
+		Iterator<MethodNode> methods = classNode.methods.iterator();
+		while(methods.hasNext())
+		{
+			MethodNode m = methods.next();
+			if (m.name.equals(canUse)&&m.desc.equals("(L"+stack+";L"+stack+";I)L"+recipe+";")) {
+				InsnList method = m.instructions;
+				Iterator<AbstractInsnNode> it = method.iterator();
+				while (it.hasNext()) {
+					AbstractInsnNode in = it.next();
+					if (in instanceof MethodInsnNode) {
+						MethodInsnNode node = (MethodInsnNode) in;
+						if (node.name.equals(get)&&node.owner.equals(list)) {
+							while (!(in instanceof VarInsnNode)||in.getOpcode()!=ASTORE) {
+								in = in.getNext();
+							}
+							InsnList l = new InsnList();
+							l.add(new VarInsnNode(ALOAD, ((VarInsnNode)in).var));
+							l.add(new VarInsnNode(ALOAD, 1));
+							l.add(new VarInsnNode(ALOAD, 2));
+							l.add(new MethodInsnNode(INVOKESTATIC, "malte0811/villagerMeta/api/VillagerHelper", "isMetaOrNbtInvalid", "(L"+recipe+";L"+stack+";L"+stack+";)Z", false));
+							LabelNode label = new LabelNode();
+							l.add(new JumpInsnNode(IFEQ, label));
+							l.add(new InsnNode(ACONST_NULL));
+							l.add(new InsnNode(ARETURN));
+							l.add(label);
+							method.insert(in, l);
+						}
+					}
+				}
+			}
+		}
+
+		cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+		classNode.accept(cw);
+		return cw.toByteArray();
+	}
+}
