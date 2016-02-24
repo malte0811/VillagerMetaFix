@@ -38,7 +38,7 @@ public class VillageTransformer implements IClassTransformer, Opcodes {
 			patchedList = true;
 			return patchList(false, basicClass);
 		}
-		
+
 		return basicClass;
 	}
 
@@ -133,6 +133,7 @@ public class VillageTransformer implements IClassTransformer, Opcodes {
 		String list = dev?"net/minecraft/village/MerchantRecipeList":"ago";
 		String recipe = dev?"net/minecraft/village/MerchantRecipe":"agn";
 		String canUse = dev?"canRecipeBeUsed":"a";
+		String addWithCheck = dev?"addToListWithCheck":"a";
 		String get = "get";
 		ClassNode classNode = new ClassNode();
 		ClassReader classReader = new ClassReader(base);
@@ -166,6 +167,24 @@ public class VillageTransformer implements IClassTransformer, Opcodes {
 							l.add(new InsnNode(ARETURN));
 							l.add(label);
 							method.insert(in, l);
+						}
+					}
+				}
+			} else if (m.name.equals(addWithCheck)&&m.desc.equals("(L"+recipe+";)V")) {
+				InsnList method = m.instructions;
+				Iterator<AbstractInsnNode> it = method.iterator();
+				while (it.hasNext()) {
+					AbstractInsnNode in = it.next();
+					if (in instanceof JumpInsnNode) {
+						JumpInsnNode n = (JumpInsnNode) in;
+						if (n.getOpcode()==IFEQ) {
+							InsnList l = new InsnList();
+							l.add(new VarInsnNode(ALOAD, 1));
+							l.add(new VarInsnNode(ALOAD, 3));
+							l.add(new MethodInsnNode(INVOKESTATIC, "malte0811/villagerMeta/api/VillagerHelper", "hasSameInputMetaNBT", "(L"+recipe+";L"+recipe+";)Z", false));
+							l.add(new JumpInsnNode(IFEQ, n.label));
+							method.insert(in, l);
+							break;
 						}
 					}
 				}

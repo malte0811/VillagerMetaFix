@@ -82,8 +82,11 @@ public class VillagerHelper {
 		return ret;
 	}
 	public static boolean areTagsEqual(ItemStack p, ItemStack q) {
-		if (p==null||q==null) {
+		if (p==null&&q==null) {
 			return true;
+		}
+		if (p==null||q==null) {
+			return false;
 		}
 		if (p.stackTagCompound==null&&q.stackTagCompound==null) {
 			return true;
@@ -95,6 +98,23 @@ public class VillagerHelper {
 		if (q.stackTagCompound==null&&p.stackTagCompound.hasNoTags()) {
 			return true;
 		}
-		return p.stackTagCompound.equals(q.stackTagCompound);
+		return ItemStack.areItemStackTagsEqual(p, q);
+	}
+	public static boolean hasSameInputMetaNBT(MerchantRecipe p0, MerchantRecipe p1) {
+		if (isMetaSensitive(p0)||isMetaSensitive(p1))
+		{
+			if (p1.getItemToBuy()!=null&&p0.getItemToBuy()!=null&&p1.getItemToBuy().getItemDamage()!=p0.getItemToBuy().getItemDamage())
+				return false;
+			if (p1.getSecondItemToBuy()!=null&&p0.getSecondItemToBuy()!=null&&p1.getSecondItemToBuy().getItemDamage()!=p0.getSecondItemToBuy().getItemDamage())
+				return false;
+		}
+		if (isNbtSensitive(p0)||isNbtSensitive(p1))
+		{
+			if (!areTagsEqual(p1.getItemToBuy(), p0.getItemToBuy()))
+				return false;
+			if (!areTagsEqual(p1.getSecondItemToBuy(), p0.getSecondItemToBuy()))
+				return false;
+		}
+		return true;
 	}
 }
