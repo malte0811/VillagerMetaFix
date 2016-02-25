@@ -107,12 +107,16 @@ public class VillagerHelper {
 				return false;
 			if (p1.getSecondItemToBuy()!=null&&p0.getSecondItemToBuy()!=null&&p1.getSecondItemToBuy().getItemDamage()!=p0.getSecondItemToBuy().getItemDamage())
 				return false;
+			if (p1.getItemToSell()!=null&&p0.getItemToSell()!=null&&p1.getItemToSell().getItemDamage()!=p0.getItemToSell().getItemDamage())
+				return false;
 		}
 		if (isNbtSensitive(p0)||isNbtSensitive(p1))
 		{
 			if (!areTagsEqual(p1.getItemToBuy(), p0.getItemToBuy()))
 				return false;
 			if (!areTagsEqual(p1.getSecondItemToBuy(), p0.getSecondItemToBuy()))
+				return false;
+			if (!areTagsEqual(p1.getItemToSell(), p0.getItemToSell()))
 				return false;
 		}
 		return true;
