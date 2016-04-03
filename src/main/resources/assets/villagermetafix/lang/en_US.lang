@@ -1,0 +1,4 @@
+gui.villagerMetaFix.ignoreM=Ignores metadata
+gui.villagerMetaFix.checkM=Checks metadata
+gui.villagerMetaFix.ignoreNBT=Ignores NBT-data
+gui.villagerMetaFix.checkNBT=Checks NBT-data

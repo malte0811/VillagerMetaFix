@@ -1,11 +1,12 @@
 package malte0811.villagerMeta;
 
+import java.io.File;
 import java.util.Map;
 
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
 
 public class VillagerMetaFix implements IFMLLoadingPlugin{
-
+	public static File location;
 	@Override
 	public String[] getASMTransformerClass() {
 		return new String[]{"malte0811.villagerMeta.VillageTransformer"};
@@ -23,8 +24,9 @@ public class VillagerMetaFix implements IFMLLoadingPlugin{
 
 	@Override
 	public void injectData(Map<String, Object> data) {
-		// TODO Auto-generated method stub
-		
+		location = (File) data.get("coremodLocation");
+		if (location == null)
+            location = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
 	}
 
 	@Override

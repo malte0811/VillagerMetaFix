@@ -2,8 +2,11 @@ package malte0811.villagerMeta;
 
 import java.util.Iterator;
 
+import org.apache.logging.log4j.Level;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
@@ -16,9 +19,7 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-import org.objectweb.asm.FieldVisitor;
-import org.objectweb.asm.Opcodes;
-
+import cpw.mods.fml.common.FMLLog;
 import net.minecraft.launchwrapper.IClassTransformer;
 
 public class VillageTransformer implements IClassTransformer, Opcodes {
@@ -43,6 +44,7 @@ public class VillageTransformer implements IClassTransformer, Opcodes {
 	}
 
 	private byte[] patchRecipe(boolean dev, byte[] base) {
+		FMLLog.log(VillageContainer.MODID, Level.INFO, "Patching MerchantRecipe, obfuscated: "+!dev);
 		String nbt = dev?"net/minecraft/nbt/NBTTagCompound":"dh";
 		String name = dev?"net/minecraft/village/MerchantRecipe":"agn";
 		String read = dev?"readFromTags":"a";
@@ -99,7 +101,7 @@ public class VillageTransformer implements IClassTransformer, Opcodes {
 				list.add(new MethodInsnNode(INVOKEVIRTUAL, nbt, getBoolean, "(Ljava/lang/String;)Z", false));
 				list.add(new FieldInsnNode(PUTFIELD, name, "checkNbt", "Z"));
 				list.add(label);
-				m.instructions.add(list);
+				m.instructions.insert(list);
 			} else if (m.name.equals(write)&&m.desc.equals("()L"+nbt+";")) {
 				InsnList list = new InsnList();
 				list.add(new VarInsnNode(ALOAD, 1));
@@ -129,6 +131,7 @@ public class VillageTransformer implements IClassTransformer, Opcodes {
 	}
 
 	private byte[] patchList(boolean dev, byte[] base) {
+		FMLLog.log(VillageContainer.MODID, Level.INFO, "Patching MerchantRecipeList, obfuscated: "+!dev);
 		String stack = dev?"net/minecraft/item/ItemStack":"add";
 		String list = dev?"net/minecraft/village/MerchantRecipeList":"ago";
 		String recipe = dev?"net/minecraft/village/MerchantRecipe":"agn";

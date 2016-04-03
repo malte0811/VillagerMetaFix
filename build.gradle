@@ -28,7 +28,8 @@ minecraft {
     runDir = "eclipse"
 }
  def commonManifest = {
-    attributes 'FMLCorePlugin': 'malte0811.villagerMeta.VillagerMetaFix'
+	attributes 'FMLCorePlugin': 'malte0811.villagerMeta.VillagerMetaFix'
+	attributes 'FMLAT': 'VillagerMetaFix_at.cfg'
 }
 
 jar {
