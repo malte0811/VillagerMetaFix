@@ -42,8 +42,7 @@ public class VillageContainer extends DummyModContainer {
 		getMetadata().authorList = l;
 		getMetadata().description="A small core mod that makes villagers check that they are buying items with the correct metadata";
 		getMetadata().name="VillagerMetaFix";
-		getMetadata().version="0.1";
-		
+		getMetadata().version="0.3";
 	}
 
 	@Override
