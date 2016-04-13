@@ -23,21 +23,27 @@ import cpw.mods.fml.common.FMLLog;
 import net.minecraft.launchwrapper.IClassTransformer;
 
 public class VillageTransformer implements IClassTransformer, Opcodes {
-	private static boolean patchedList = false, patchedRecipe = false;
+	private static boolean patchedList = false, patchedRecipe = false, obf = false;
 	@Override
 	public byte[] transform(String name, String transformedName, byte[] basicClass) {
 		if (!patchedRecipe&&name.equals("net.minecraft.village.MerchantRecipe")) {
 			patchedRecipe = true;
+			obf = true;
 			return patchRecipe(true, basicClass);
 		} else if (!patchedRecipe&&name.equals("agn")) {
 			patchedRecipe = true;
+			obf = false;
 			return patchRecipe(false, basicClass);
 		} else if (!patchedList&&name.equals("net.minecraft.village.MerchantRecipeList")) {
 			patchedList = true;
+			obf = true;
 			return patchList(true, basicClass);
 		} else if (!patchedList&&name.equals("ago")) {
 			patchedList = true;
+			obf = false;
 			return patchList(false, basicClass);
+		} else if (name.equals("malte0811.villagerMeta.api.VillagerHelper")) {
+			return patchApi(obf, basicClass);
 		}
 
 		return basicClass;
@@ -198,4 +204,51 @@ public class VillageTransformer implements IClassTransformer, Opcodes {
 		classNode.accept(cw);
 		return cw.toByteArray();
 	}
+	//reflection does not have a good performance
+	private byte[] patchApi(boolean dev, byte[] base) {
+		FMLLog.log(VillageContainer.MODID, Level.INFO, "Patching VillagerHelper, obfuscated: "+!dev);
+		String recipe = dev?"net/minecraft/village/MerchantRecipe":"agn";
+		ClassNode classNode = new ClassNode();
+		ClassReader classReader = new ClassReader(base);
+		classReader.accept(classNode, 0);
+
+		Iterator<MethodNode> methods = classNode.methods.iterator();
+		while(methods.hasNext())
+		{
+			MethodNode m = methods.next();
+			if (m.desc.equals("(L"+recipe+";)Z")) {
+				if (m.name.equals("isMetaSensitive")) {
+					m.visitCode();
+					m.visitVarInsn(ALOAD, 0);
+					m.visitFieldInsn(GETFIELD, recipe, "checkMeta", "Z");
+					m.visitInsn(IRETURN);
+					m.visitMaxs(1, 1);
+					m.visitEnd();
+				} else if (m.name.equals("isNbtSensitive")) {
+					m.visitCode();
+					m.visitVarInsn(ALOAD, 0);
+					m.visitFieldInsn(GETFIELD, recipe, "checkNbt", "Z");
+					m.visitInsn(IRETURN);
+					m.visitMaxs(1, 1);
+					m.visitEnd();
+				} else if (m.name.equals("setMetaAndNbtSensitivity")) {
+					m.visitCode();
+					m.visitVarInsn(ALOAD, 0);
+					m.visitVarInsn(ILOAD, 1);
+					m.visitFieldInsn(PUTFIELD, recipe, "checkNbt", "Z");
+					m.visitVarInsn(ALOAD, 0);
+					m.visitVarInsn(ILOAD, 2);
+					m.visitFieldInsn(PUTFIELD, recipe, "checkNbt", "Z");
+					m.visitInsn(RETURN);
+					m.visitMaxs(2, 3);
+					m.visitEnd();
+				}
+			}
+		}
+
+		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+		classNode.accept(cw);
+		return cw.toByteArray();
+	}
+
 }

@@ -40,6 +40,14 @@ public class VillagerHelper {
 			return false;
 		}
 	}
+	public static void setMetaAndNbtSensitivity(MerchantRecipe r, boolean meta, boolean nbt) {
+		initMeta();
+		initNbt();
+		try {
+			VillagerHelper.meta.set(r, meta);
+			VillagerHelper.nbt.set(r, nbt);
+		} catch (Exception x) {}
+	}
 	private static void initNbt() {
 		if (nbt==null) {
 			Class<MerchantRecipe> c = MerchantRecipe.class;
