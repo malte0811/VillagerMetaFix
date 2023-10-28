@@ -29,6 +29,10 @@ public class ClientEventHandler {
 			GuiMerchant gm = (GuiMerchant) event.gui;
 			if (current==null) {
 				int currId = gm.field_147041_z;
+				if(currId >= ClientEventHandler.meta.length || currId >= ClientEventHandler.nbt.length) {
+					// probably a weird custom villager, just don't render anything special
+					return;
+				}
 				current = new boolean[]{ClientEventHandler.meta[currId], ClientEventHandler.nbt[currId]};
 				//the nbt/meta-sensitivity fields are not synced automatically
 				MerchantRecipeList list = gm.field_147037_w.getRecipes(Minecraft.getMinecraft().thePlayer);
